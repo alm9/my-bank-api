@@ -29,7 +29,7 @@ appRouter.get('/query/:agency/:account', async (req, res) => {
       */
     );
 
-    if (accountFind.length == 0)
+    if (accountFind.length === 0)
       res.status(404).send('Agência e/ou conta incorreta(s).');
 
     res.send(accountFind);
@@ -55,13 +55,61 @@ appRouter.patch('/deposit/:agency/:account/:deposit', async (req, res) => {
         agencia: agency,
         conta: account,
       },
-      { $inc: { balance: deposit } }
+      { $inc: { balance: +deposit } }
     );
 
     if (accountFind === null)
       res.status(404).send('Agência e/ou conta incorreta(s).');
 
-    res.send('Depósito realizado.');
+    res.send(
+      `Depósito feito. Saldo atual: ${(
+        Number(accountFind.balance) + Number(deposit)
+      ).toString()}`
+    );
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
+
+/**
+ * Endpoint para registrar um saque em uma conta.
+ * Recebe como parâmetros a “agência”, o número da “conta” e o valor do saque.
+ * Atualiza o “balance” da conta, decrementando-o com o valor recebido e
+ * cobrando uma tarifa de saque de (1).
+ * É verificado se a conta informada existe, caso não exista retorna um erro,
+ * caso exista retorna o saldo atual da conta. Também valida se a conta possui
+ * saldo suficiente para o saque, retornando um erro caso contrário.
+ */
+appRouter.patch('/withdrawal/:agency/:account/:value', async (req, res) => {
+  try {
+    const { agency, account, value } = req.params;
+
+    const accountFind = await accountModel.find({
+      agencia: agency,
+      conta: account,
+    });
+
+    if (accountFind.length === 0)
+      res.status(404).send('Agência e/ou conta incorreta(s).');
+
+    const balanceFind = await accountModel.findOneAndUpdate(
+      {
+        agencia: agency,
+        conta: account,
+        balance: { $gte: value },
+      },
+      {
+        $inc: { balance: -value },
+      }
+    );
+    if (balanceFind === null)
+      res.status(404).send('Erro: não há saldo suficiente para essa conta.');
+
+    res.send(
+      `Saque feito. Saldo atual: ${(
+        Number(balanceFind.balance) - Number(value)
+      ).toString()}`
+    );
   } catch (error) {
     res.status(500).send(error);
   }

@@ -6,10 +6,11 @@ const accountSchema = mongoose.Schema({
   name: { type: String, required: true },
   balance: {
     type: Number,
+    min: 0,
     required: true,
-    validate(balance) {
+    /*validate(balance) {
       if (balance < 0) throw new Error('Erro: proibido saldo negativo.');
-    },
+    },*/
   },
 });
 
