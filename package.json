@@ -1,0 +1,29 @@
+{
+  "name": "my-bank-api",
+  "version": "1.0.0",
+  "description": "API integrada ao MongoDB Atlas, cujo schema de dados é gerenciado pelo Mongoose. Esta API terá endpoints para a manipulação dos dados.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alm9/my-bank-api.git"
+  },
+  "keywords": [
+    "mongoDB Atlas",
+    "Mongoose",
+    "API"
+  ],
+  "author": "André Machado",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/alm9/my-bank-api/issues"
+  },
+  "homepage": "https://github.com/alm9/my-bank-api#readme",
+  "type": "module",
+  "dependencies": {
+    "express": "^4.17.1",
+    "mongoose": "^5.9.20"
+  }
+}
