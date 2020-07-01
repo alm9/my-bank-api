@@ -2,6 +2,10 @@ import express from 'express';
 import { accountModel } from '../models/accountModel.js';
 const appRouter = express();
 
+//Fees: (Taxas)
+const withdrawalFee = 1;
+const trasnferFee = 8;
+
 /**
  * Endpoint para consultar o saldo da conta.
  * Recebe como parâmetro a “agência” e o número da “conta”, retorna “balance”.
@@ -83,6 +87,7 @@ appRouter.patch('/deposit/:agency/:account/:deposit', async (req, res) => {
 appRouter.patch('/withdrawal/:agency/:account/:value', async (req, res) => {
   try {
     const { agency, account, value } = req.params;
+    const total = value + withdrawalFee;
 
     const accountFind = await accountModel.find({
       agencia: agency,
@@ -90,16 +95,16 @@ appRouter.patch('/withdrawal/:agency/:account/:value', async (req, res) => {
     });
 
     if (accountFind.length === 0)
-      res.status(404).send('Agência e/ou conta incorreta(s).');
+      res.status(404).send('Erro: agência e/ou conta incorreta(s).');
 
     const balanceFind = await accountModel.findOneAndUpdate(
       {
         agencia: agency,
         conta: account,
-        balance: { $gte: value },
+        balance: { $gte: total },
       },
       {
-        $inc: { balance: -value },
+        $inc: { balance: -total },
       }
     );
     if (balanceFind === null)
@@ -107,7 +112,7 @@ appRouter.patch('/withdrawal/:agency/:account/:value', async (req, res) => {
 
     res.send(
       `Saque feito. Saldo atual: ${(
-        Number(balanceFind.balance) - Number(value)
+        Number(balanceFind.balance) - Number(total)
       ).toString()}`
     );
   } catch (error) {
@@ -129,7 +134,7 @@ appRouter.delete('/:agency/:account', async (req, res) => {
     });
 
     if (!accountToDelete)
-      res.status(404).send('Agência e/ou conta incorreta(s).');
+      res.status(404).send('Erro: agência e/ou conta incorreta(s).');
 
     const quantity = await accountModel.countDocuments({
       agencia: agency,
@@ -142,5 +147,78 @@ appRouter.delete('/:agency/:account', async (req, res) => {
     res.status(500).send(error);
   }
 });
+
+/**
+ * Endpoint que realiza transferências entre contas.
+ * Recebe como parâmetro o número da “conta” origem, o número da “conta”
+ * destino e o valor de transferência.
+ * Valida se as contas são da mesma agência para realizar a transferência.
+ * Caso sejam de agências distintas o valor de tarifa de transferencia (8)
+ * deve ser debitado na “conta” origem.
+ * O endpoint retorna o saldo da conta origem.
+ */
+appRouter.post(
+  '/:agency1/:account1/:agency2/:account2/:value',
+  async (req, res) => {
+    try {
+      const { agency1, account1, agency2, account2, value } = req.params;
+
+      if (value <= 0) res.status(404).send('Erro: valor menor ou igual a 0.');
+
+      //se agências diferentes, será cobrada tarifa
+      const total = agency1 === agency2 ? value : Number(value) + trasnferFee;
+
+      //PROCURA CONTA 1
+      const account1Find = await accountModel.find({
+        agencia: agency1,
+        conta: account1,
+      });
+      if (account1Find.length === 0)
+        res.status(404).send('Erro: dados da conta origem incorretos.');
+
+      //PROCURA CONTA 2
+      const account2Find = await accountModel.find({
+        agencia: agency2,
+        conta: account2,
+      });
+      if (account2Find.length === 0)
+        res.status(404).send('Erro: dados da conta destino incorretos.');
+
+      //VERIFICA SALDO CONTA 1
+      const balance1Find = await accountModel.findOneAndUpdate(
+        {
+          agencia: agency1,
+          conta: account1,
+          balance: { $gte: total },
+        },
+        {
+          $inc: { balance: -total },
+        }
+      );
+      if (balance1Find === null)
+        res.status(404).send('Erro: saldo da conta origem insuficiente.');
+
+      //TRANSFERE DE CONTA 1 À CONTA 2
+      const balance2Find = await accountModel.findOneAndUpdate(
+        {
+          agencia: agency2,
+          conta: account2,
+          balance: { $gte: value },
+        },
+        {
+          $inc: { balance: value },
+        }
+      );
+
+      res.send(
+        `Transferência feita. Saldo atual da conta origem: ${(
+          Number(balance1Find.balance) - Number(total)
+        ).toString()}`
+      );
+    } catch (error) {
+      res.status(500).send(error);
+    }
+  }
+);
 
 export { appRouter as bankRouter };
