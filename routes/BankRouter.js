@@ -260,12 +260,36 @@ appRouter.get('/avg/:agency', async (req, res) => {
  * clientes a serem listados, e retorna em ordem crescente pelo saldo a lista
  * dos clientes (agência, conta, saldo).
  */
-appRouter.get('/lowest/:value', async (req, res) => {
+appRouter.get('/low/:value', async (req, res) => {
   try {
     const { value } = req.params;
     const filter = [
-      { $project: { _id: 0, agencia: 1, conta: 1, name: 1 } },
+      { $project: { _id: 0, agencia: 1, conta: 1, balance: 1 } },
       { $sort: { balance: 1 } },
+      { $limit: Number(value) },
+    ];
+    let result = await accountModel.aggregate(filter);
+
+    if (result.length === 0) res.status(404).send('Agência vazia.');
+
+    res.send(result);
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
+
+/**
+ * Endpoint que consulta os clientes mais ricos do banco.
+ * Recebe como parâmetro um valor numérico que determina a quantidade de
+ * clientes a serem listados, retornando - em ordem decrescente pelo saldo e
+ * crescente pelo nome - a lista dos clientes (agência, conta, nome e saldo).
+ */
+appRouter.get('/high/:value', async (req, res) => {
+  try {
+    const { value } = req.params;
+    const filter = [
+      { $project: { _id: 0, agencia: 1, conta: 1, name: 1, balance: 1 } },
+      { $sort: { balance: -1, nome: 1 } },
       { $limit: Number(value) },
     ];
     let result = await accountModel.aggregate(filter);
