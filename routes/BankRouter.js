@@ -221,4 +221,55 @@ appRouter.post(
   }
 );
 
+/**
+ * Endpoint que consulta a média do saldo dos clientes de determinada agência.
+ * Recebe como parametro a “agência” e retorna o balance médio das contas.
+ */
+appRouter.get('/:agency', async (req, res) => {
+  try {
+    const { agency } = req.params;
+    // const accountFind = await accountModel.aggregate([
+    //   {
+    //     $group: {
+    //       _id: { agencia: agency },
+    //       total: { $sum: 'balance' },
+    //     },
+    //   },
+    // ]);
+    const filter = [
+      {
+        $match: {
+          // <passe o filtro por aqui caso tiver>,
+          agencia: Number(agency),
+        },
+      },
+      {
+        $group: {
+          _id: `Média da agência ${agency}`, //'$agencia',
+          média: { $avg: '$balance' },
+        },
+      },
+      // { $sort: <para ordenar>},
+      // { $limit: <quantidade de retorno>},
+    ];
+    let result = await accountModel.aggregate(filter);
+
+    console.log('\n\t\t----------------------------\naccountFind:');
+    console.log(result);
+
+    if (result.length === 0) res.status(404).send('Agência vazia.');
+
+    res.send(result);
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
+
+/**
+ * Endpoint para consulta dos clientes com o menor saldo em conta.
+ * Recebe como parâmetro um valor numérico para determinar a quantidade de
+ * clientes a serem listados, e retorna em ordem crescente pelo saldo a lista
+ * dos clientes (agência, conta, saldo).
+ */
+
 export { appRouter as bankRouter };
