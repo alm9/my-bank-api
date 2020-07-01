@@ -11,7 +11,7 @@ const trasnferFee = 8;
  * Recebe como parâmetro a “agência” e o número da “conta”, retorna “balance”.
  * Caso a conta informada não exista, retorna um erro
  */
-appRouter.get('/:agency/:account', async (req, res) => {
+appRouter.get('/query/:agency/:account', async (req, res) => {
   try {
     const { agency, account } = req.params;
     const accountFind = await accountModel.find(
@@ -225,21 +225,13 @@ appRouter.post(
  * Endpoint que consulta a média do saldo dos clientes de determinada agência.
  * Recebe como parametro a “agência” e retorna o balance médio das contas.
  */
-appRouter.get('/:agency', async (req, res) => {
+appRouter.get('/avg/:agency', async (req, res) => {
+  console.log(req.params.agency);
   try {
     const { agency } = req.params;
-    // const accountFind = await accountModel.aggregate([
-    //   {
-    //     $group: {
-    //       _id: { agencia: agency },
-    //       total: { $sum: 'balance' },
-    //     },
-    //   },
-    // ]);
     const filter = [
       {
         $match: {
-          // <passe o filtro por aqui caso tiver>,
           agencia: Number(agency),
         },
       },
@@ -253,9 +245,6 @@ appRouter.get('/:agency', async (req, res) => {
       // { $limit: <quantidade de retorno>},
     ];
     let result = await accountModel.aggregate(filter);
-
-    console.log('\n\t\t----------------------------\naccountFind:');
-    console.log(result);
 
     if (result.length === 0) res.status(404).send('Agência vazia.');
 
@@ -271,5 +260,22 @@ appRouter.get('/:agency', async (req, res) => {
  * clientes a serem listados, e retorna em ordem crescente pelo saldo a lista
  * dos clientes (agência, conta, saldo).
  */
+appRouter.get('/lowest/:value', async (req, res) => {
+  try {
+    const { value } = req.params;
+    const filter = [
+      { $project: { _id: 0, agencia: 1, conta: 1, name: 1 } },
+      { $sort: { balance: 1 } },
+      { $limit: Number(value) },
+    ];
+    let result = await accountModel.aggregate(filter);
+
+    if (result.length === 0) res.status(404).send('Agência vazia.');
+
+    res.send(result);
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
 
 export { appRouter as bankRouter };
