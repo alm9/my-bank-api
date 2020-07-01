@@ -7,7 +7,7 @@ const appRouter = express();
  * Recebe como parâmetro a “agência” e o número da “conta”, retorna “balance”.
  * Caso a conta informada não exista, retorna um erro
  */
-appRouter.get('/query/:agency/:account', async (req, res) => {
+appRouter.get('/:agency/:account', async (req, res) => {
   try {
     const { agency, account } = req.params;
     const accountFind = await accountModel.find(
@@ -109,6 +109,34 @@ appRouter.patch('/withdrawal/:agency/:account/:value', async (req, res) => {
       `Saque feito. Saldo atual: ${(
         Number(balanceFind.balance) - Number(value)
       ).toString()}`
+    );
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
+
+/**
+ * Endpoint para excluir uma conta.
+ * Recebe como parâmetro a “agência” e o número da “conta” da conta e retorna
+ * o número de contas ativas para esta agência.
+ */
+appRouter.delete('/:agency/:account', async (req, res) => {
+  try {
+    const { agency, account } = req.params;
+    const accountToDelete = await accountModel.findOneAndDelete({
+      agencia: agency,
+      conta: account,
+    });
+
+    if (!accountToDelete)
+      res.status(404).send('Agência e/ou conta incorreta(s).');
+
+    const quantity = await accountModel.countDocuments({
+      agencia: agency,
+    });
+
+    res.send(
+      `Conta apagada. A agência ${agency} ainda possui ${quantity} contas ativas.`
     );
   } catch (error) {
     res.status(500).send(error);
