@@ -302,4 +302,54 @@ appRouter.get('/high/:value', async (req, res) => {
   }
 });
 
+/**
+ * Endpoint que transfere o cliente com maior saldo em conta de cada agência
+ * para a agência private agencia=99. O endpoint deverá retornar a lista dos
+ * clientes da agencia private.
+ */
+appRouter.post('/private/', async (req, res) => {
+  try {
+    const filter = [
+      // { $project: { _id: 0, agencia: 1, conta: 1, name: 1, balance: 1 } },
+      {
+        $group: {
+          _id: '$agencia',
+          maior: { $max: '$balance' },
+        },
+      },
+      // { $sort: { balance: -1, nome: 1 } },
+      // { $limit: Number(value) },
+    ];
+
+    let result = await accountModel.aggregate(filter);
+    let result2 = [];
+    for (let i = 0; i < result.length; i++) {
+      const agency = result[i]._id;
+      const highest = result[i].maior;
+      // console.log(agency + '<==>' + highest);
+
+      // $match: {
+      //   agencia: agency,
+      //   balance: highest,
+      //   $set: { agencia: 99 },
+      // },
+
+      const agy99 = await accountModel.findOneAndUpdate(
+        {
+          agencia: agency,
+          balance: highest,
+        },
+        { $set: { agencia: 99 } }
+      );
+      result2.push(agy99);
+    }
+
+    if (result.length === 0) res.status(404).send('Agência vazia.');
+
+    res.send(result2);
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
+
 export { appRouter as bankRouter };
