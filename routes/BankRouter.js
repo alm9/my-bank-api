@@ -87,7 +87,7 @@ appRouter.patch('/deposit/:agency/:account/:deposit', async (req, res) => {
 appRouter.patch('/withdrawal/:agency/:account/:value', async (req, res) => {
   try {
     const { agency, account, value } = req.params;
-    const total = value + withdrawalFee;
+    const total = Number(value) + withdrawalFee;
 
     const accountFind = await accountModel.find({
       agencia: agency,
@@ -339,7 +339,8 @@ appRouter.post('/private/', async (req, res) => {
           agencia: agency,
           balance: highest,
         },
-        { $set: { agencia: 99 } }
+        { $set: { agencia: 99 } },
+        { new: true }
       );
       result2.push(agy99);
     }
