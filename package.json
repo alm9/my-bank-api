@@ -23,7 +23,7 @@
   "homepage": "https://github.com/alm9/my-bank-api#readme",
   "type": "module",
   "dependencies": {
-    "express": "^4.17.1",
+    "express": "^4.21.2",
     "mongoose": "^6.13.5"
   }
 }
